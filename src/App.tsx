@@ -111,6 +111,7 @@ export default function App() {
   // WebSocket Ref
   const wsRef = useRef<WebSocket | null>(null);
   const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const wsAttemptsRef = useRef<number>(0);
 
   // Check URL for /admin or #admin
   useEffect(() => {
@@ -282,7 +283,9 @@ export default function App() {
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
     const envWsUrl = (import.meta as any).env?.VITE_WS_URL;
-    const wsUrl = envWsUrl || `${protocol}//${window.location.host}/ws`;
+    // Alternate between /ws and root / to support diverse proxy configurations
+    const pathSuffix = wsAttemptsRef.current % 2 === 0 ? '/ws' : '';
+    const wsUrl = envWsUrl || `${protocol}//${window.location.host}${pathSuffix}`;
 
     let ws: WebSocket;
     try {
@@ -295,6 +298,7 @@ export default function App() {
     }
 
     ws.onopen = () => {
+      wsAttemptsRef.current = 0;
       // Send join message if player exists
       const pName = localStorage.getItem('gitmaster_player_name');
       const pAvatar = localStorage.getItem('gitmaster_player_avatar');
@@ -392,6 +396,7 @@ export default function App() {
     };
 
     ws.onclose = () => {
+      wsAttemptsRef.current += 1;
       if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = setTimeout(() => {
         connectWebSocket();

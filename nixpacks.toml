@@ -1,0 +1,18 @@
+# Nixpacks configuration for Coolify
+# Ensures Coolify runs this as a full-stack Node.js server rather than a static SPA
+
+[phases.setup]
+nixPkgs = ["nodejs_22"]
+
+[phases.install]
+cmds = ["npm install"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "node server.js"
+
+[variables]
+NODE_ENV = "production"
+PORT = "3000"
