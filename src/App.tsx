@@ -92,6 +92,8 @@ export default function App() {
   const [errorFeedback, setErrorFeedback] = useState<{
     show: boolean;
     message: string;
+    pointsLost?: number;
+    brokeStrike?: boolean;
   } | null>(null);
 
   // Recent strikes feed
@@ -194,11 +196,13 @@ export default function App() {
     (payload: {
       success: boolean;
       pointsEarned?: number;
+      pointsLost?: number;
       strike?: number;
+      brokeStrike?: boolean;
       message: string;
       visualAction?: any;
     }) => {
-      const { success, pointsEarned, strike, message, visualAction } = payload;
+      const { success, pointsEarned, pointsLost, strike, brokeStrike, message, visualAction } = payload;
 
       if (success) {
         soundManager.playSuccess();
@@ -235,9 +239,24 @@ export default function App() {
         ]);
       } else {
         soundManager.playError();
+        const lost = pointsLost || 25;
+        const broke = Boolean(brokeStrike);
+
+        // Immediately update current player strike and points locally
+        setCurrentPlayer((prev) => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            strike: 0,
+            score: Math.max(0, prev.score - lost),
+          };
+        });
+
         setErrorFeedback({
           show: true,
           message: message,
+          pointsLost: lost,
+          brokeStrike: broke,
         });
         setTimeout(() => setErrorFeedback(null), 3000);
 

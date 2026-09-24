@@ -25,6 +25,8 @@ interface TerminalConsoleProps {
   errorFeedback?: {
     show: boolean;
     message: string;
+    pointsLost?: number;
+    brokeStrike?: boolean;
   } | null;
   currentHint?: string;
 }
@@ -137,6 +139,26 @@ export const TerminalConsole: React.FC<TerminalConsoleProps> = ({
               +{strikeFeedback.points} XP
             </span>
             <Sparkles className="w-4 h-4 text-amber-200" />
+          </div>
+        </div>
+      )}
+
+      {/* Floating Animated ERROR & PENALTY Banner Overlay */}
+      {errorFeedback?.show && (
+        <div className="absolute top-12 left-1/2 -translate-x-1/2 z-30 pointer-events-none animate-bounce">
+          <div className="flex items-center gap-2 bg-gradient-to-r from-rose-600 to-red-700 text-white font-black px-5 py-2 rounded-full shadow-2xl shadow-rose-600/50 border border-rose-400 tracking-wider text-xs sm:text-sm">
+            <AlertCircle className="w-4 h-4 text-white animate-pulse shrink-0" />
+            <span>HATALI KOMUT!</span>
+            {errorFeedback.pointsLost ? (
+              <span className="bg-black/40 px-2 py-0.5 rounded-full text-xs font-mono text-rose-200 font-extrabold">
+                -{errorFeedback.pointsLost} XP
+              </span>
+            ) : null}
+            {errorFeedback.brokeStrike && (
+              <span className="bg-rose-950/80 px-2 py-0.5 rounded-full text-[10px] font-mono text-amber-200 border border-rose-500/40">
+                STRIKE SIFIRLANDI!
+              </span>
+            )}
           </div>
         </div>
       )}

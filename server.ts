@@ -160,7 +160,9 @@ interface CommandExecutionResult {
   playerId: string;
   challengeId: string;
   pointsEarned?: number;
+  pointsLost?: number;
   strike: number;
+  brokeStrike?: boolean;
   message: string;
   visualAction?: any;
   completedAll?: boolean;
@@ -247,10 +249,17 @@ function executePlayerCommand(
       completedAll: isAllCompleted,
     };
   } else {
-    // Wrong command - strike resets!
+    // Wrong command - break strike and deduct points!
     const previousStrike = player.strike || 0;
     player.strike = 0;
+
+    const penaltyPoints = 25; // 25 XP penalty per error
+    const previousScore = player.score || 0;
+    // Score cannot drop below 0
+    player.score = Math.max(0, previousScore - penaltyPoints);
     player.lastActiveAt = Date.now();
+
+    const brokeStrike = previousStrike > 0;
 
     persistSession();
     broadcastSession();
@@ -260,9 +269,11 @@ function executePlayerCommand(
       playerId: player.id,
       challengeId: challenge.id,
       strike: 0,
-      message: `Hatalı komut! Doğru sözdizimini kontrol et. (İpucu: ${challenge.hint})${
-        previousStrike > 1 ? ' — Strike sıfırlandı!' : ''
-      }`,
+      pointsLost: penaltyPoints,
+      brokeStrike,
+      message: `Hatalı komut! Doğru sözdizimini kontrol et. (-${penaltyPoints} XP${
+        brokeStrike ? ` | ${previousStrike}x Strike bozuldu!` : ''
+      }) (İpucu: ${challenge.hint})`,
     };
   }
 }

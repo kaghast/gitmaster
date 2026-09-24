@@ -137,7 +137,9 @@ export type WebSocketServerMessage =
         challengeId: string;
         success: boolean;
         pointsEarned?: number;
+        pointsLost?: number;
         strike?: number;
+        brokeStrike?: boolean;
         message: string;
         visualAction?: VisualAction;
         completedAll?: boolean;
