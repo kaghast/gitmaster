@@ -1,0 +1,6 @@
+{
+  "name": "GitMaster Live: Çok Oyunculu Git Eğitimi",
+  "description": "Gerçek zamanlı çok oyunculu interaktif Git öğrenme platformu. Terminal konsolu, canlı görsel Git DAG animasyonları, strike komboları, 15 dakikalık oturumlar ve admin yönetim paneli.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

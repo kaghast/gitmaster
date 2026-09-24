@@ -1,0 +1,374 @@
+[
+  {
+    "id": "git-init",
+    "category": "Temel Komutlar",
+    "level": "Başlangıç",
+    "title": "Depo Başlatma (Init)",
+    "scenario": "Yeni bir web projesine başlıyorsun. Proje dizininde sürüm kontrolünü başlatmak için yeni bir Git deposu oluşturmalısın.",
+    "task": "Mevcut dizinde yeni bir Git deposu başlat.",
+    "commandPattern": "^git\\s+init(\\s+.*)?$",
+    "solution": "git init",
+    "hint": "Depoyu ilk defa oluştururken kullanılan temel komuttur.",
+    "explanation": "`git init` komutu geçerli klasörde gizli bir `.git` alt klasörü oluşturarak versiyon takibini başlatır.",
+    "points": 100,
+    "visualAction": {
+      "type": "init",
+      "branch": "main"
+    }
+  },
+  {
+    "id": "git-status",
+    "category": "Durum & Takip",
+    "level": "Başlangıç",
+    "title": "Çalışma Durumu İnceleme",
+    "scenario": "Bazı dosyalarda değişiklikler yaptın. Hangi dosyaların izlenmediğini (untracked) veya hazırlık alanında (staged) olduğunu kontrol et.",
+    "task": "Çalışma dizini ve hazırlık alanının durumunu kontrol et.",
+    "commandPattern": "^git\\s+status(\\s+.*)?$",
+    "solution": "git status",
+    "hint": "Çalışma alanının o anki durumunu gösteren komuttur.",
+    "explanation": "`git status`, çalışma ağacındaki ve hazırlık alanındaki değiştirilmiş, eklenmiş veya silinmiş dosyaları listeler.",
+    "points": 100,
+    "visualAction": {
+      "type": "status"
+    }
+  },
+  {
+    "id": "git-add-all",
+    "category": "Hazırlık Alanı (Staging)",
+    "level": "Başlangıç",
+    "title": "Tüm Değişiklikleri Hazırlama",
+    "scenario": "Projede 'index.html' ve 'style.css' dosyalarını güncelledin. Tüm bu dosyaları bir sonraki commit için hazırlık alanına (Staging Area / Index) göndermelisin.",
+    "task": "Tüm değiştirilen ve yeni eklenen dosyaları hazırlık alanına ekle.",
+    "commandPattern": "^git\\s+add\\s+(\\.|-A|--all)$",
+    "solution": "git add .",
+    "hint": "'git add' komutunun yanına tüm dosyaları temsil eden '.' veya '-A' koyabilirsin.",
+    "explanation": "`git add .`, çalışma dizinindeki tüm değişiklikleri Staging alanına taşır ve commite hazır hale getirir.",
+    "points": 120,
+    "visualAction": {
+      "type": "stage",
+      "files": ["index.html", "style.css"]
+    }
+  },
+  {
+    "id": "git-commit",
+    "category": "Kayıt (Commit)",
+    "level": "Başlangıç",
+    "title": "İlk Değişiklikleri Kaydetme",
+    "scenario": "Hazırlık alanındaki dosyaları anlamlı bir mesajla yerel depoya kalıcı olarak kaydetmelisin.",
+    "task": "\"feat: initial commit\" mesajıyla commit oluştur.",
+    "commandPattern": "^git\\s+commit\\s+-m\\s+[\"']feat:\\s*initial\\s+commit[\"']$",
+    "solution": "git commit -m \"feat: initial commit\"",
+    "hint": "-m parametresi ile tırnak içinde commit mesajı yazmalısın.",
+    "explanation": "`git commit -m \"...\"`, hazırlık alanındaki değişikliklerin kalıcı bir anlık görüntüsünü (snapshot) oluşturur.",
+    "points": 150,
+    "visualAction": {
+      "type": "commit",
+      "message": "feat: initial commit",
+      "branch": "main"
+    }
+  },
+  {
+    "id": "git-branch-create",
+    "category": "Dallar (Branches)",
+    "level": "Orta",
+    "title": "Yeni Dal Açma",
+    "scenario": "Ana dalı bozmadan kullanıcı giriş özelliği geliştirmek istiyorsun. 'feature-login' adında yeni bir dal oluştur.",
+    "task": "'feature-login' adında yeni bir dal (branch) oluştur.",
+    "commandPattern": "^git\\s+branch\\s+feature-login$",
+    "solution": "git branch feature-login",
+    "hint": "'git branch <dal-adı>' sözdizimini kullan.",
+    "explanation": "`git branch <ad>`, mevcut commit üzerinde yeni bir işaretçi (dal) yaratır ancak o dala otomatik geçiş yapmaz.",
+    "points": 130,
+    "visualAction": {
+      "type": "create_branch",
+      "branch": "feature-login"
+    }
+  },
+  {
+    "id": "git-checkout-switch",
+    "category": "Dallar (Branches)",
+    "level": "Orta",
+    "title": "Dallar Arası Geçiş",
+    "scenario": "Yeni oluşturduğun 'feature-login' dalına geçiş yapıp çalışmalarını orada sürdürmelisin.",
+    "task": "'feature-login' dalına geçiş yap.",
+    "commandPattern": "^git\\s+(checkout|switch)\\s+feature-login$",
+    "solution": "git checkout feature-login",
+    "hint": "'git checkout feature-login' veya modern Git ile 'git switch feature-login' yazabilirsin.",
+    "explanation": "`git checkout <dal>` veya `git switch <dal>`, HEAD işaretçisini belirtilen dala yönlendirir.",
+    "points": 130,
+    "visualAction": {
+      "type": "switch_branch",
+      "branch": "feature-login"
+    }
+  },
+  {
+    "id": "git-checkout-b",
+    "category": "Dallar (Branches)",
+    "level": "Orta",
+    "title": "Tek Hamlede Dal Açıp Geçme",
+    "scenario": "Yeni bir özellik için hızlıca hem dal açmak hem de anında o dala geçmek istiyorsun. Dal adı: 'feature-cart'.",
+    "task": "'feature-cart' adında yeni bir dal oluştur ve hemen o dala geç.",
+    "commandPattern": "^git\\s+(checkout\\s+-b|switch\\s+-c)\\s+feature-cart$",
+    "solution": "git checkout -b feature-cart",
+    "hint": "checkout komutunda '-b' veya switch komutunda '-c' parametresini kullan.",
+    "explanation": "`git checkout -b <dal>`, dal oluşturma ve geçiş işlemlerini tek bir adımda birleştirir.",
+    "points": 140,
+    "visualAction": {
+      "type": "create_and_switch_branch",
+      "branch": "feature-cart"
+    }
+  },
+  {
+    "id": "git-commit-feature",
+    "category": "Kayıt (Commit)",
+    "level": "Orta",
+    "title": "Özellik Dalında Commit",
+    "scenario": "Sepet bileşeni kodlandı ve stajlandı. 'feat: add shopping cart' mesajıyla commit at.",
+    "task": "\"feat: add shopping cart\" mesajıyla commit oluştur.",
+    "commandPattern": "^git\\s+commit\\s+-m\\s+[\"']feat:\\s*add\\s+shopping\\s+cart[\"']$",
+    "solution": "git commit -m \"feat: add shopping cart\"",
+    "hint": "-m parametresi ile tırnak içinde belirtilen mesajı yaz.",
+    "explanation": "Özellik dalında oluşturulan commit'ler HEAD işaretçisi ile birlikte o dalı ileri taşır.",
+    "points": 150,
+    "visualAction": {
+      "type": "commit",
+      "message": "feat: add shopping cart",
+      "branch": "feature-cart"
+    }
+  },
+  {
+    "id": "git-switch-main",
+    "category": "Dallar (Branches)",
+    "level": "Başlangıç",
+    "title": "Ana Dala Geri Dönüş",
+    "scenario": "Özelliği tamamladın. Şimdi birleştirme (merge) yapmak üzere ana dal olan 'main' dalına geri dön.",
+    "task": "'main' dalına geçiş yap.",
+    "commandPattern": "^git\\s+(checkout|switch)\\s+main$",
+    "solution": "git checkout main",
+    "hint": "'git checkout main' veya 'git switch main' yazabilirsin.",
+    "explanation": "Birleştirmeden önce hedef dalda (genellikle `main`) bulunmanız gerekir.",
+    "points": 120,
+    "visualAction": {
+      "type": "switch_branch",
+      "branch": "main"
+    }
+  },
+  {
+    "id": "git-merge",
+    "category": "Birleştirme (Merge)",
+    "level": "Orta",
+    "title": "Dalları Birleştirme",
+    "scenario": "Main dalındasın. 'feature-cart' dalındaki tüm yenilikleri ana 'main' dalına entegre etmelisin.",
+    "task": "'feature-cart' dalını bulunduğun ana dala birleştir.",
+    "commandPattern": "^git\\s+merge\\s+feature-cart$",
+    "solution": "git merge feature-cart",
+    "hint": "'git merge <birleştirilecek-dal-adı>' sözdizimini kullan.",
+    "explanation": "`git merge <dal>`, belirtilen dalın geçmişini mevcut aktif dala dahil eder.",
+    "points": 160,
+    "visualAction": {
+      "type": "merge",
+      "sourceBranch": "feature-cart",
+      "targetBranch": "main"
+    }
+  },
+  {
+    "id": "git-log-oneline",
+    "category": "Geçmiş & İnceleme",
+    "level": "Başlangıç",
+    "title": "Kompakt Geçmiş Görüntüleme",
+    "scenario": "Projenin commit geçmişini her satırda tek bir commit ve kısa hash olacak şekilde temiz bir özet olarak listele.",
+    "task": "Commit geçmişini tek satırlık formatta listele.",
+    "commandPattern": "^git\\s+log\\s+--oneline$",
+    "solution": "git log --oneline",
+    "hint": "'git log' komutuna '--oneline' bayrağı ekle.",
+    "explanation": "`git log --oneline`, commit'lerin hash ve başlıklarını tek satırda okunaklı biçimde sıralar.",
+    "points": 110,
+    "visualAction": {
+      "type": "log"
+    }
+  },
+  {
+    "id": "git-remote-add",
+    "category": "Uzak Depo (Remote)",
+    "level": "Orta",
+    "title": "Uzak Depo Tanımlama",
+    "scenario": "GitHub üzerinde bir repo açtın. Bu depoyu 'origin' takma adıyla yerel projene bağlamalısın.",
+    "task": "'origin' adıyla 'https://github.com/company/app.git' adresini remote olarak ekle.",
+    "commandPattern": "^git\\s+remote\\s+add\\s+origin\\s+https://github\\.com/company/app\\.git$",
+    "solution": "git remote add origin https://github.com/company/app.git",
+    "hint": "'git remote add origin <url>' formatını kullan.",
+    "explanation": "`git remote add origin <url>`, yerel deponun buluttaki merkezi depo ile haberleşmesini sağlar.",
+    "points": 140,
+    "visualAction": {
+      "type": "remote_add",
+      "remote": "origin"
+    }
+  },
+  {
+    "id": "git-push",
+    "category": "Uzak Depo (Remote)",
+    "level": "Orta",
+    "title": "Kodları Uzak Depoya Gönderme",
+    "scenario": "Yerelde tamamlanan 'main' dalını uzak depodaki 'origin'e ilk kez takipçi (upstream) belirterek push et.",
+    "task": "'main' dalını upstream belirterek origin'e gönder.",
+    "commandPattern": "^git\\s+push\\s+(-u|--set-upstream)\\s+origin\\s+main$",
+    "solution": "git push -u origin main",
+    "hint": "-u bayrağı gelecekteki 'git push' çağrıları için dalı origin/main'e bağlar.",
+    "explanation": "`git push -u origin main`, yerel commit'leri uzak depoya yükler ve varsayılan upstream ilişkisi kurar.",
+    "points": 160,
+    "visualAction": {
+      "type": "push",
+      "remote": "origin",
+      "branch": "main"
+    }
+  },
+  {
+    "id": "git-pull",
+    "category": "Uzak Depo (Remote)",
+    "level": "Orta",
+    "title": "Uzak Depodaki Güncellemeleri Çekme",
+    "scenario": "Ekip arkadaşların origin/main dalına yeni commit'ler gönderdi. Yerel deponu güncellemek için bu değişiklikleri çek.",
+    "task": "Uzak depodaki son değişiklikleri çekip birleştir.",
+    "commandPattern": "^git\\s+pull(\\s+origin\\s+main)?$",
+    "solution": "git pull",
+    "hint": "'git pull' uzak depodaki değişiklikleri hem indirir (fetch) hem birleştirir (merge).",
+    "explanation": "`git pull`, arka planda `git fetch` ve ardından `git merge` çalıştırarak yerel dalınızı günceller.",
+    "points": 140,
+    "visualAction": {
+      "type": "pull",
+      "branch": "main"
+    }
+  },
+  {
+    "id": "git-stash",
+    "category": "Geçici Saklama (Stash)",
+    "level": "İleri",
+    "title": "Değişiklikleri Zula Yapma (Stash)",
+    "scenario": "Bir özellik kodlarken aniden acil bir hata düzeltmesi geldi. Henüz bitmemiş yarım işlerini commit etmeden kenara sakla.",
+    "task": "Bitmemiş değişiklikleri zula alanına (stash) al.",
+    "commandPattern": "^git\\s+stash(\\s+push)?$",
+    "solution": "git stash",
+    "hint": "'git stash' komutu çalışma dizinini temizleyip değişiklikleri bellekte tutar.",
+    "explanation": "`git stash`, henüz commit etmeye hazır olmadığınız değişiklikleri geçici bir yığında saklar ve çalışma alanını temizler.",
+    "points": 150,
+    "visualAction": {
+      "type": "stash_save"
+    }
+  },
+  {
+    "id": "git-stash-pop",
+    "category": "Geçici Saklama (Stash)",
+    "level": "İleri",
+    "title": "Zuladaki İşleri Geri Alma",
+    "scenario": "Acil düzeltmeyi tamamladın. Şimdi zuladaki (stash) yarım kalan işlerini geri çağırıp yığından temizle.",
+    "task": "En son zulalanan değişiklikleri geri yükle ve zula listesinden çıkar.",
+    "commandPattern": "^git\\s+stash\\s+pop$",
+    "solution": "git stash pop",
+    "hint": "'pop' kelimesi hem uygular hem de listeden siler.",
+    "explanation": "`git stash pop`, en son saklanan değişikliği mevcut çalışma kopyanıza uygular ve yığından düşürür.",
+    "points": 150,
+    "visualAction": {
+      "type": "stash_pop"
+    }
+  },
+  {
+    "id": "git-diff",
+    "category": "Geçmiş & İnceleme",
+    "level": "Başlangıç",
+    "title": "Farkları İnceleme (Diff)",
+    "scenario": "Staging alanına henüz eklemediğin çalışma dosyalarındaki satır satır değişiklikleri incelemek istiyorsun.",
+    "task": "Çalışma dizini ile son commit arasındaki farkları göster.",
+    "commandPattern": "^git\\s+diff$",
+    "solution": "git diff",
+    "hint": "Farkları (differences) gösteren kısa komutu yaz.",
+    "explanation": "`git diff`, henüz hazırlık alanına alınmamış satır bazlı değişiklikleri renkli çıktı olarak verir.",
+    "points": 110,
+    "visualAction": {
+      "type": "diff"
+    }
+  },
+  {
+    "id": "git-restore-staged",
+    "category": "Geri Alma (Undo)",
+    "level": "İleri",
+    "title": "Hazırlık Alanından Çıkarma (Unstage)",
+    "scenario": "Yanlışlıkla 'secret.key' dosyasını 'git add' ile stajladın. Dosyayı silmeden sadece hazırlık alanından geri çıkar.",
+    "task": "'secret.key' dosyasını hazırlık alanından geri al (unstage yap).",
+    "commandPattern": "^git\\s+(restore\\s+--staged|reset\\s+HEAD)\\s+secret\\.key$",
+    "solution": "git restore --staged secret.key",
+    "hint": "Modern Git komutu: 'git restore --staged <dosya>' veya geleneksel 'git reset HEAD <dosya>'.",
+    "explanation": "`git restore --staged`, dosyanın diskteki içeriğini korurken onu bir sonraki commit listesinden çıkarır.",
+    "points": 160,
+    "visualAction": {
+      "type": "unstage",
+      "file": "secret.key"
+    }
+  },
+  {
+    "id": "git-reset-soft",
+    "category": "Geri Alma (Undo)",
+    "level": "İleri",
+    "title": "Son Commit'i Geri Alma (Soft Reset)",
+    "scenario": "Son yaptığın commit'te bir hata fark ettin. Commit'i iptal et ama dosyalardaki değişiklikleri staging alanında koru.",
+    "task": "Son commit'i iptal et ve dosyaları hazırlık alanında tut (soft reset).",
+    "commandPattern": "^git\\s+reset\\s+--soft\\s+HEAD~1$",
+    "solution": "git reset --soft HEAD~1",
+    "hint": "'--soft HEAD~1' parametresi son commit'i çözer ama değişiklikleri korur.",
+    "explanation": "`git reset --soft HEAD~1`, HEAD işaretçisini bir önceki commit'e çeker fakat dosya değişikliklerini stajlı bırakır.",
+    "points": 180,
+    "visualAction": {
+      "type": "reset_soft"
+    }
+  },
+  {
+    "id": "git-tag",
+    "category": "Etiketleme (Tag)",
+    "level": "Orta",
+    "title": "Sürüm Etiketleme (Tag)",
+    "scenario": "Uygulama canlıya çıkmaya hazır. Mevcut commit'e 'v1.0.0' adında hafif bir sürüm etiketi ekle.",
+    "task": "Mevcut commit noktasına 'v1.0.0' etiketini koy.",
+    "commandPattern": "^git\\s+tag\\s+v1\\.0\\.0$",
+    "solution": "git tag v1.0.0",
+    "hint": "'git tag <etiket-adı>' komutunu yaz.",
+    "explanation": "`git tag`, depodaki belirli ve önemli bir commit noktasını (örn: release) işaretlemek için kullanılır.",
+    "points": 130,
+    "visualAction": {
+      "type": "tag",
+      "tag": "v1.0.0"
+    }
+  },
+  {
+    "id": "git-branch-delete",
+    "category": "Dallar (Branches)",
+    "level": "Orta",
+    "title": "Birleştirilmiş Dalı Temizleme",
+    "scenario": "'feature-login' dalı main dalına sorunsuzca birleştirildi. Artık gerekmeyen bu yerel dalı güvenli şekilde sil.",
+    "task": "'feature-login' yerel dalını sil.",
+    "commandPattern": "^git\\s+branch\\s+(-d|--delete)\\s+feature-login$",
+    "solution": "git branch -d feature-login",
+    "hint": "-d parametresi güvenli silme sağlar (yalnızca merge edilmişse siler).",
+    "explanation": "`git branch -d <dal>`, ana dala birleştirilmiş tamamlanmış özellikleri temiz tutmak için yerel dal işaretçisini kaldırır.",
+    "points": 140,
+    "visualAction": {
+      "type": "delete_branch",
+      "branch": "feature-login"
+    }
+  },
+  {
+    "id": "git-rebase",
+    "category": "İleri Düzey (Rebase)",
+    "level": "İleri",
+    "title": "Dalı Yeniden Temellendirme (Rebase)",
+    "scenario": "Özellik dalındasın. Ana daldaki (main) yeni commit'leri temiz, doğrusal bir geçmiş için dalının tabanına uygula.",
+    "task": "Bulunduğun dalı 'main' dalı üzerine rebase yap.",
+    "commandPattern": "^git\\s+rebase\\s+main$",
+    "solution": "git rebase main",
+    "hint": "'git rebase <hedef-dal>' komutuyla doğrusal bir commit zinciri elde edilir.",
+    "explanation": "`git rebase`, bir daldaki commit dizisini alır ve başka bir taban commit üzerine sırayla yeniden oynatır.",
+    "points": 190,
+    "visualAction": {
+      "type": "rebase",
+      "base": "main"
+    }
+  }
+]

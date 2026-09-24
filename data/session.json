@@ -1,0 +1,33 @@
+{
+  "sessionId": "session-default",
+  "status": "waiting",
+  "durationSeconds": 900,
+  "timeRemaining": 900,
+  "startedAt": null,
+  "endsAt": null,
+  "activeChallengeIds": [
+    "git-init",
+    "git-status",
+    "git-add-all",
+    "git-commit",
+    "git-branch-create",
+    "git-checkout-switch",
+    "git-checkout-b",
+    "git-commit-feature",
+    "git-switch-main",
+    "git-merge",
+    "git-log-oneline",
+    "git-remote-add",
+    "git-push",
+    "git-pull",
+    "git-stash",
+    "git-stash-pop",
+    "git-diff",
+    "git-restore-staged",
+    "git-reset-soft",
+    "git-tag",
+    "git-branch-delete",
+    "git-rebase"
+  ],
+  "players": []
+}
