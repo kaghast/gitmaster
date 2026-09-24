@@ -1,19 +1,11 @@
 import React from 'react';
 import {
-  Terminal,
   Clock,
   Flame,
   Volume2,
   VolumeX,
-  Shield,
-  Trophy,
-  GitBranch,
-  HelpCircle,
-  Play,
-  RotateCcw,
 } from 'lucide-react';
 import type { SessionState, Player } from '../types.ts';
-import { soundManager } from '../utils/audio.ts';
 
 interface NavbarProps {
   session: SessionState;
@@ -21,7 +13,7 @@ interface NavbarProps {
   isMuted: boolean;
   onToggleMute: () => void;
   onOpenOnboarding: () => void;
-  onShowHelp: () => void;
+  onShowHelp?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -30,7 +22,6 @@ export const Navbar: React.FC<NavbarProps> = ({
   isMuted,
   onToggleMute,
   onOpenOnboarding,
-  onShowHelp,
 }) => {
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -43,31 +34,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 text-slate-100">
       <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-4">
-        {/* Left: Brand / Title */}
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-amber-500 via-orange-600 to-red-600 flex items-center justify-center shadow-lg shadow-orange-500/20 ring-1 ring-orange-400/30">
-            <GitBranch className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-black text-lg tracking-tight bg-gradient-to-r from-amber-400 via-orange-300 to-rose-400 bg-clip-text text-transparent">
-                GitMaster Live
-              </span>
-              <span className="px-2 py-0.5 text-[10px] font-bold rounded-full uppercase tracking-wider bg-orange-500/10 text-orange-400 border border-orange-500/30">
-                Çok Oyunculu
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 hidden sm:block">
-              15 Dakikalık Canlı İnteraktif Git Arenası
-            </p>
-          </div>
-        </div>
-
-        {/* Center: Session Timer & Status (Only shown once session is started or running/finished) */}
-        {session.status !== 'waiting' ? (
-          <div className="flex items-center gap-3">
+        {/* Left: Session Timer */}
+        <div className="flex items-center min-w-[100px] sm:min-w-[130px]">
+          {session.status !== 'waiting' && (
             <div
-              className={`flex items-center gap-2.5 px-4 py-1.5 rounded-xl border transition-all ${
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-xl border transition-all ${
                 session.status === 'running'
                   ? isLowTime
                     ? 'bg-red-950/60 border-red-500/60 shadow-lg shadow-red-500/20 animate-pulse'
@@ -87,17 +58,15 @@ export const Navbar: React.FC<NavbarProps> = ({
                 }`}
               />
               <div className="flex flex-col">
-                <span className="text-[10px] uppercase font-semibold tracking-wider text-slate-400 leading-none">
+                <span className="text-[9px] uppercase font-semibold tracking-wider text-slate-400 leading-none">
                   {session.status === 'running'
                     ? 'Kalan Süre'
                     : session.status === 'finished'
                     ? 'Süre Doldu'
-                    : session.status === 'paused'
-                    ? 'Duraklatıldı'
-                    : 'Oturum Bekleniyor'}
+                    : 'Duraklatıldı'}
                 </span>
                 <span
-                  className={`font-mono text-base font-extrabold tracking-wider leading-tight ${
+                  className={`font-mono text-sm font-extrabold tracking-wider leading-tight ${
                     session.status === 'running'
                       ? isLowTime
                         ? 'text-red-400'
@@ -109,16 +78,18 @@ export const Navbar: React.FC<NavbarProps> = ({
                 </span>
               </div>
             </div>
-          </div>
-        ) : (
-          <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-slate-900/70 border border-slate-800 text-[11px] text-slate-400">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-pulse" />
-            <span>Oturum Henüz Başlatılmadı</span>
-          </div>
-        )}
+          )}
+        </div>
+
+        {/* Center: Title (Only "GitMaster Live", centered) */}
+        <div className="flex-1 text-center">
+          <h1 className="font-black text-lg sm:text-xl tracking-tight bg-gradient-to-r from-amber-400 via-orange-300 to-rose-400 bg-clip-text text-transparent inline-block">
+            GitMaster Live
+          </h1>
+        </div>
 
         {/* Right: Player Profile & Action Controls */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex items-center justify-end gap-2 sm:gap-3 min-w-[100px] sm:min-w-[130px]">
           {/* Current Player badge */}
           {currentPlayer ? (
             <button
@@ -158,15 +129,6 @@ export const Navbar: React.FC<NavbarProps> = ({
             title={isMuted ? 'Sesi Aç' : 'Sesi Kapat'}
           >
             {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4 text-emerald-400" />}
-          </button>
-
-          {/* Help Button */}
-          <button
-            onClick={onShowHelp}
-            className="p-2 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-400 hover:text-slate-200 transition cursor-pointer"
-            title="Oyun Rehberi & Kurallar"
-          >
-            <HelpCircle className="w-4 h-4" />
           </button>
         </div>
       </div>

@@ -32,6 +32,7 @@ import { PlayerOnboardingModal } from './components/PlayerOnboardingModal.tsx';
 import { AdminPanelModal } from './components/AdminPanelModal.tsx';
 import { GameOverModal } from './components/GameOverModal.tsx';
 import { HelpModal } from './components/HelpModal.tsx';
+import { LobbyScreen } from './components/LobbyScreen.tsx';
 
 // Initial placeholder state
 const DEFAULT_SESSION: SessionState = {
@@ -151,9 +152,6 @@ export default function App() {
     if (!storedId) {
       storedId = 'player_' + Math.random().toString(36).substring(2, 9);
       localStorage.setItem('gitmaster_player_id', storedId);
-      setShowOnboarding(true);
-    } else if (!storedName) {
-      setShowOnboarding(true);
     }
 
     setPlayerId(storedId);
@@ -506,101 +504,76 @@ export default function App() {
 
   const isGameRunning = session.status === 'running';
 
+  // If session is waiting or player has no name yet (even if running, they need a name to play), show Lobby Screen!
+  const shouldShowLobby = session.status === 'waiting' || !currentPlayer?.name;
+
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col font-sans selection:bg-orange-500/30">
-      {/* Top Navbar */}
-      <Navbar
-        session={session}
-        currentPlayer={currentPlayer}
-        isMuted={isMuted}
-        onToggleMute={handleToggleMute}
-        onOpenOnboarding={() => setShowOnboarding(true)}
-        onShowHelp={() => setShowHelp(true)}
-      />
-
-      {/* Main Body Layout: Content Area (Left) + Fixed Leaderboard (Right) */}
-      <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
-        {/* Left / Center: Interactive Playground */}
-        <main className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 max-w-5xl mx-auto w-full">
-          {/* Status Alert for End-Users */}
-          {!isGameRunning && (
-            <div className="p-3.5 rounded-2xl bg-slate-900/90 border border-slate-800 text-xs sm:text-sm text-slate-300 flex items-center justify-between gap-3 animate-fadeIn">
-              <div className="flex items-center gap-2.5">
-                <Clock className="w-5 h-5 text-amber-400 shrink-0" />
-                <div>
-                  <span className="font-bold text-slate-100">
-                    {session.status === 'finished'
-                      ? 'Oturum Tamamlandı! 🎉'
-                      : 'Yarışma Başlangıcı Bekleniyor...'}
-                  </span>
-                  <p className="text-[11px] text-slate-400">
-                    {session.status === 'finished'
-                      ? 'Oturum sona erdi. Podyumu ve liderlik tablosundaki nihai sıralamayı inceleyebilirsiniz.'
-                      : 'Oturum başladığında 15 dakikalık süre işleyecek ve terminal komut girişine açılacaktır.'}
-                  </p>
-                </div>
-              </div>
-
-              <div className="hidden sm:flex items-center gap-2 text-xs font-mono font-bold text-slate-400 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800/80">
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    session.status === 'finished' ? 'bg-amber-400' : 'bg-orange-500 animate-pulse'
-                  }`}
-                ></span>
-                <span>{session.status === 'finished' ? 'Tamamlandı' : 'Bekleniyor'}</span>
-              </div>
-            </div>
-          )}
-
-          {/* 1. Git Visualizer & Architecture Animation */}
-          <GitVisualizer
-            lastAction={lastVisualAction}
-            activeBranch={currentChallenge?.visualAction?.branch || 'main'}
-          />
-
-          {/* 2. Current Challenge Mission Card (Only shown when session is active or finished) */}
-          {session.status !== 'waiting' ? (
-            <ChallengeCard
-              challenge={currentChallenge}
-              currentIndex={currentChallengeIndex}
-              totalCount={activeChallenges.length}
-              currentStrike={currentPlayer?.strike || 0}
-            />
-          ) : (
-            <div className="p-6 rounded-3xl bg-slate-900/60 border border-dashed border-slate-800 text-center space-y-2">
-              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-400 border border-amber-500/20 flex items-center justify-center mx-auto mb-2">
-                <Sparkles className="w-6 h-6" />
-              </div>
-              <h3 className="text-base font-bold text-slate-200">
-                Görevler Oturum Başlayınca Açılacak
-              </h3>
-              <p className="text-xs text-slate-400 max-w-md mx-auto">
-                Yönetici oturumu başlattığında 1. Git görevi bu alanda belirecek ve terminalden komut girişi aktif hale gelecektir.
-              </p>
-            </div>
-          )}
-
-          {/* 3. Developer Terminal Console */}
-          <TerminalConsole
-            onExecuteCommand={handleExecuteCommand}
-            entries={terminalEntries}
-            activeBranch={currentChallenge?.visualAction?.branch || 'main'}
-            isGameRunning={isGameRunning}
-            onClear={() => setTerminalEntries([])}
-            strikeFeedback={strikeFeedback}
-            errorFeedback={errorFeedback}
-            currentHint={currentChallenge?.hint}
-          />
-        </main>
-
-        {/* Right: Fixed Real-time Leaderboard */}
-        <Leaderboard
-          players={session.players}
-          currentPlayerId={playerId}
-          totalChallengesCount={activeChallenges.length}
-          recentStrikes={recentStrikes}
+      {shouldShowLobby ? (
+        /* Lobby Screen */
+        <LobbyScreen
+          currentPlayer={currentPlayer}
+          session={session}
+          onJoin={handleSaveProfile}
+          onUpdateProfile={handleSaveProfile}
+          onShowHelp={() => setShowHelp(true)}
+          isMuted={isMuted}
+          onToggleMute={handleToggleMute}
         />
-      </div>
+      ) : (
+        /* Active Game Arena Screen (shown when admin starts game and user has profile) */
+        <>
+          {/* Top Navbar */}
+          <Navbar
+            session={session}
+            currentPlayer={currentPlayer}
+            isMuted={isMuted}
+            onToggleMute={handleToggleMute}
+            onOpenOnboarding={() => setShowOnboarding(true)}
+            onShowHelp={() => setShowHelp(true)}
+          />
+
+          {/* Main Body Layout: Content Area (Left) + Fixed Leaderboard (Right) */}
+          <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+            {/* Left / Center: Interactive Playground */}
+            <main className="flex-1 overflow-y-auto p-3 sm:p-5 space-y-4 max-w-5xl mx-auto w-full">
+              {/* 1. Git Visualizer & Architecture Animation */}
+              <GitVisualizer
+                lastAction={lastVisualAction}
+                activeBranch={currentChallenge?.visualAction?.branch || 'main'}
+              />
+
+              {/* 2. Current Challenge Mission Card */}
+              <ChallengeCard
+                challenge={currentChallenge}
+                currentIndex={currentChallengeIndex}
+                totalCount={activeChallenges.length}
+                currentStrike={currentPlayer?.strike || 0}
+              />
+
+              {/* 3. Developer Terminal Console */}
+              <TerminalConsole
+                onExecuteCommand={handleExecuteCommand}
+                entries={terminalEntries}
+                activeBranch={currentChallenge?.visualAction?.branch || 'main'}
+                isGameRunning={isGameRunning}
+                onClear={() => setTerminalEntries([])}
+                strikeFeedback={strikeFeedback}
+                errorFeedback={errorFeedback}
+                currentHint={currentChallenge?.hint}
+              />
+            </main>
+
+            {/* Right: Fixed Real-time Leaderboard */}
+            <Leaderboard
+              players={session.players}
+              currentPlayerId={playerId}
+              totalChallengesCount={activeChallenges.length}
+              recentStrikes={recentStrikes}
+            />
+          </div>
+        </>
+      )}
 
       {/* Modals */}
       <PlayerOnboardingModal
