@@ -127,6 +127,146 @@ function startSessionTimer() {
   }, 1000);
 }
 
+function registerOrUpdatePlayer(playerId: string, name: string, avatar: string): Player {
+  let player = sessionState.players.find((p) => p.id === playerId);
+  if (!player) {
+    player = {
+      id: playerId,
+      name: name || 'Geliştirici',
+      avatar: avatar || '🐱',
+      score: 0,
+      strike: 0,
+      maxStrike: 0,
+      completedChallengeIds: [],
+      currentChallengeIndex: 0,
+      lastActiveAt: Date.now(),
+      isOnline: true,
+    };
+    sessionState.players.push(player);
+  } else {
+    player.name = name || player.name;
+    player.avatar = avatar || player.avatar;
+    player.isOnline = true;
+    player.lastActiveAt = Date.now();
+  }
+
+  persistSession();
+  broadcastSession();
+  return player;
+}
+
+interface CommandExecutionResult {
+  success: boolean;
+  playerId: string;
+  challengeId: string;
+  pointsEarned?: number;
+  strike: number;
+  message: string;
+  visualAction?: any;
+  completedAll?: boolean;
+}
+
+function executePlayerCommand(
+  playerId: string,
+  challengeId: string,
+  command: string
+): CommandExecutionResult | { error: string } {
+  const player = sessionState.players.find((p) => p.id === playerId);
+  if (!player) return { error: 'Oyuncu bulunamadı' };
+
+  const challenge = challenges.find((c) => c.id === challengeId);
+  if (!challenge) return { error: 'Görev bulunamadı' };
+
+  const trimmedCmd = (command || '').trim();
+  const regex = new RegExp(challenge.commandPattern, 'i');
+  const isCorrect = regex.test(trimmedCmd);
+
+  if (isCorrect) {
+    const nextStrike = (player.strike || 0) + 1;
+    player.strike = nextStrike;
+    player.maxStrike = Math.max(player.maxStrike || 0, nextStrike);
+
+    // Strike multiplier:
+    // Strike 1: 1.0x, Strike 2: 1.5x, Strike 3: 2.0x, Strike 4: 2.5x, Strike 5+: 3.0x
+    const multiplier =
+      nextStrike === 1
+        ? 1
+        : nextStrike === 2
+        ? 1.5
+        : nextStrike === 3
+        ? 2.0
+        : nextStrike === 4
+        ? 2.5
+        : 3.0;
+
+    const pointsEarned = Math.round(challenge.points * multiplier);
+    player.score += pointsEarned;
+    player.lastActiveAt = Date.now();
+
+    if (!player.completedChallengeIds.includes(challengeId)) {
+      player.completedChallengeIds.push(challengeId);
+    }
+
+    // Move to next challenge
+    const activeIds = sessionState.activeChallengeIds;
+    const currentFilteredIdx = activeIds.indexOf(challengeId);
+    if (currentFilteredIdx !== -1 && currentFilteredIdx + 1 < activeIds.length) {
+      player.currentChallengeIndex = currentFilteredIdx + 1;
+    }
+
+    const isAllCompleted = player.completedChallengeIds.length >= activeIds.length;
+
+    // Broadcast strike event if streak >= 2
+    if (nextStrike >= 2) {
+      broadcast({
+        type: 'strike_event',
+        payload: {
+          playerId: player.id,
+          playerName: player.name,
+          avatar: player.avatar,
+          strike: nextStrike,
+          pointsEarned,
+          challengeTitle: challenge.title,
+        },
+      });
+    }
+
+    persistSession();
+    broadcastSession();
+
+    return {
+      success: true,
+      playerId: player.id,
+      challengeId: challenge.id,
+      pointsEarned,
+      strike: nextStrike,
+      message: `Harika! Komut başarıyla uygulandı (+${pointsEarned} Puan${
+        nextStrike > 1 ? ` | ${nextStrike}x STRIKE!` : ''
+      })`,
+      visualAction: challenge.visualAction,
+      completedAll: isAllCompleted,
+    };
+  } else {
+    // Wrong command - strike resets!
+    const previousStrike = player.strike || 0;
+    player.strike = 0;
+    player.lastActiveAt = Date.now();
+
+    persistSession();
+    broadcastSession();
+
+    return {
+      success: false,
+      playerId: player.id,
+      challengeId: challenge.id,
+      strike: 0,
+      message: `Hatalı komut! Doğru sözdizimini kontrol et. (İpucu: ${challenge.hint})${
+        previousStrike > 1 ? ' — Strike sıfırlandı!' : ''
+      }`,
+    };
+  }
+}
+
 // REST Endpoints
 app.get('/api/session', (req, res) => {
   res.json(sessionState);
@@ -134,6 +274,24 @@ app.get('/api/session', (req, res) => {
 
 app.get('/api/challenges', (req, res) => {
   res.json(challenges);
+});
+
+app.post('/api/player/join', (req, res) => {
+  const { playerId, name, avatar } = req.body;
+  if (!playerId) {
+    return res.status(400).json({ error: 'playerId gerekli' });
+  }
+  const player = registerOrUpdatePlayer(playerId, name, avatar);
+  res.json({ success: true, player, sessionState });
+});
+
+app.post('/api/submit_command', (req, res) => {
+  const { playerId, challengeId, command } = req.body;
+  if (!playerId || !challengeId) {
+    return res.status(400).json({ error: 'Eksik parametre' });
+  }
+  const result = executePlayerCommand(playerId, challengeId, command);
+  res.json(result);
 });
 
 app.post('/api/admin/login', (req, res) => {
@@ -182,140 +340,33 @@ wss.on('connection', (ws: WebSocket) => {
           const { playerId, name, avatar } = message.payload;
           clientMeta.playerId = playerId;
           clientMap.set(ws, clientMeta);
-
-          let player = sessionState.players.find((p) => p.id === playerId);
-          if (!player) {
-            player = {
-              id: playerId,
-              name: name || 'Geliştirici',
-              avatar: avatar || '🐱',
-              score: 0,
-              strike: 0,
-              maxStrike: 0,
-              completedChallengeIds: [],
-              currentChallengeIndex: 0,
-              lastActiveAt: Date.now(),
-              isOnline: true,
-            };
-            sessionState.players.push(player);
-          } else {
-            player.name = name || player.name;
-            player.avatar = avatar || player.avatar;
-            player.isOnline = true;
-            player.lastActiveAt = Date.now();
-          }
-
-          persistSession();
-          broadcastSession();
+          registerOrUpdatePlayer(playerId, name, avatar);
           break;
         }
 
         case 'submit_command': {
           const { playerId, challengeId, command } = message.payload;
-          const player = sessionState.players.find((p) => p.id === playerId);
-          if (!player) return;
-
-          const challenge = challenges.find((c) => c.id === challengeId);
-          if (!challenge) return;
-
-          const trimmedCmd = (command || '').trim();
-          const regex = new RegExp(challenge.commandPattern, 'i');
-          const isCorrect = regex.test(trimmedCmd);
-
-          if (isCorrect) {
-            const nextStrike = (player.strike || 0) + 1;
-            player.strike = nextStrike;
-            player.maxStrike = Math.max(player.maxStrike || 0, nextStrike);
-
-            // Strike multiplier:
-            // Strike 1: 1.0x, Strike 2: 1.5x, Strike 3: 2.0x, Strike 4: 2.5x, Strike 5+: 3.0x
-            const multiplier =
-              nextStrike === 1
-                ? 1
-                : nextStrike === 2
-                ? 1.5
-                : nextStrike === 3
-                ? 2.0
-                : nextStrike === 4
-                ? 2.5
-                : 3.0;
-
-            const pointsEarned = Math.round(challenge.points * multiplier);
-            player.score += pointsEarned;
-            player.lastActiveAt = Date.now();
-
-            if (!player.completedChallengeIds.includes(challengeId)) {
-              player.completedChallengeIds.push(challengeId);
-            }
-
-            // Move to next challenge
-            const activeIds = sessionState.activeChallengeIds;
-            const currentFilteredIdx = activeIds.indexOf(challengeId);
-            if (currentFilteredIdx !== -1 && currentFilteredIdx + 1 < activeIds.length) {
-              player.currentChallengeIndex = currentFilteredIdx + 1;
-            }
-
-            const isAllCompleted = player.completedChallengeIds.length >= activeIds.length;
-
-            // Broadcast strike event if streak >= 2 or high score
-            if (nextStrike >= 2) {
-              broadcast({
-                type: 'strike_event',
-                payload: {
-                  playerId: player.id,
-                  playerName: player.name,
-                  avatar: player.avatar,
-                  strike: nextStrike,
-                  pointsEarned,
-                  challengeTitle: challenge.title,
-                },
-              });
-            }
-
-            // Send command result to the player
+          const result = executePlayerCommand(playerId, challengeId, command);
+          if ('error' in result) {
             ws.send(
               JSON.stringify({
                 type: 'command_result',
                 payload: {
-                  playerId: player.id,
-                  challengeId: challenge.id,
-                  success: true,
-                  pointsEarned,
-                  strike: nextStrike,
-                  message: `Harika! Komut başarıyla uygulandı (+${pointsEarned} Puan${
-                    nextStrike > 1 ? ` | ${nextStrike}x STRIKE!` : ''
-                  })`,
-                  visualAction: challenge.visualAction,
-                  completedAll: isAllCompleted,
-                },
-              })
-            );
-
-            persistSession();
-            broadcastSession();
-          } else {
-            // Wrong command - strike resets!
-            const previousStrike = player.strike || 0;
-            player.strike = 0;
-            player.lastActiveAt = Date.now();
-
-            ws.send(
-              JSON.stringify({
-                type: 'command_result',
-                payload: {
-                  playerId: player.id,
-                  challengeId: challenge.id,
+                  playerId,
+                  challengeId,
                   success: false,
                   strike: 0,
-                  message: `Hatalı komut! Doğru sözdizimini kontrol et. (İpucu: ${challenge.hint})${
-                    previousStrike > 1 ? ' — Strike sıfırlandı!' : ''
-                  }`,
+                  message: result.error,
                 },
               })
             );
-
-            persistSession();
-            broadcastSession();
+          } else {
+            ws.send(
+              JSON.stringify({
+                type: 'command_result',
+                payload: result,
+              })
+            );
           }
           break;
         }

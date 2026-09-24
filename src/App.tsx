@@ -189,13 +189,91 @@ export default function App() {
       .catch((err) => console.error('Failed to load session:', err));
   }, []);
 
+  // Command result handler (used by both WebSocket and HTTP fallback)
+  const handleCommandResultPayload = useCallback(
+    (payload: {
+      success: boolean;
+      pointsEarned?: number;
+      strike?: number;
+      message: string;
+      visualAction?: any;
+    }) => {
+      const { success, pointsEarned, strike, message, visualAction } = payload;
+
+      if (success) {
+        soundManager.playSuccess();
+        if (strike && strike > 1) {
+          soundManager.playStrike(strike);
+          if (strike >= 3) {
+            confetti({
+              particleCount: 50,
+              spread: 60,
+              origin: { y: 0.8 },
+            });
+          }
+        }
+
+        if (visualAction) {
+          setLastVisualAction(visualAction);
+        }
+
+        setStrikeFeedback({
+          strike: strike || 1,
+          points: pointsEarned || 100,
+          show: true,
+        });
+        setTimeout(() => setStrikeFeedback(null), 2500);
+
+        setTerminalEntries((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            type: 'success',
+            text: `✔ ${message}`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+      } else {
+        soundManager.playError();
+        setErrorFeedback({
+          show: true,
+          message: message,
+        });
+        setTimeout(() => setErrorFeedback(null), 3000);
+
+        setTerminalEntries((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(),
+            type: 'error',
+            text: `✖ ${message}`,
+            timestamp: new Date().toLocaleTimeString(),
+          },
+        ]);
+      }
+    },
+    []
+  );
+
   // Setup WebSocket connection
   const connectWebSocket = useCallback(() => {
-    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) return;
+    if (wsRef.current && (wsRef.current.readyState === WebSocket.OPEN || wsRef.current.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
 
     const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const wsUrl = `${protocol}//${window.location.host}`;
-    const ws = new WebSocket(wsUrl);
+    const envWsUrl = (import.meta as any).env?.VITE_WS_URL;
+    const wsUrl = envWsUrl || `${protocol}//${window.location.host}/ws`;
+
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(wsUrl);
+    } catch (e) {
+      console.warn('WebSocket init exception:', e);
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
+      reconnectTimeoutRef.current = setTimeout(connectWebSocket, 3000);
+      return;
+    }
 
     ws.onopen = () => {
       // Send join message if player exists
@@ -258,59 +336,7 @@ export default function App() {
           }
 
           case 'command_result': {
-            const { success, pointsEarned, strike, message, visualAction } = msg.payload;
-
-            if (success) {
-              soundManager.playSuccess();
-              if (strike && strike > 1) {
-                soundManager.playStrike(strike);
-                if (strike >= 3) {
-                  confetti({
-                    particleCount: 50,
-                    spread: 60,
-                    origin: { y: 0.8 },
-                  });
-                }
-              }
-
-              if (visualAction) {
-                setLastVisualAction(visualAction);
-              }
-
-              setStrikeFeedback({
-                strike: strike || 1,
-                points: pointsEarned || 100,
-                show: true,
-              });
-              setTimeout(() => setStrikeFeedback(null), 2500);
-
-              setTerminalEntries((prev) => [
-                ...prev,
-                {
-                  id: Math.random().toString(),
-                  type: 'success',
-                  text: `✔ ${message}`,
-                  timestamp: new Date().toLocaleTimeString(),
-                },
-              ]);
-            } else {
-              soundManager.playError();
-              setErrorFeedback({
-                show: true,
-                message: message,
-              });
-              setTimeout(() => setErrorFeedback(null), 3000);
-
-              setTerminalEntries((prev) => [
-                ...prev,
-                {
-                  id: Math.random().toString(),
-                  type: 'error',
-                  text: `✖ ${message}`,
-                  timestamp: new Date().toLocaleTimeString(),
-                },
-              ]);
-            }
+            handleCommandResultPayload(msg.payload);
             break;
           }
 
@@ -342,14 +368,19 @@ export default function App() {
       }
     };
 
+    ws.onerror = (err) => {
+      console.warn('WebSocket connection error (will reconnect / fallback to HTTP):', err);
+    };
+
     ws.onclose = () => {
+      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
       reconnectTimeoutRef.current = setTimeout(() => {
         connectWebSocket();
-      }, 2500);
+      }, 3000);
     };
 
     wsRef.current = ws;
-  }, []);
+  }, [handleCommandResultPayload]);
 
   useEffect(() => {
     connectWebSocket();
@@ -358,6 +389,33 @@ export default function App() {
       wsRef.current?.close();
     };
   }, [connectWebSocket]);
+
+  // Periodic HTTP fallback sync for sessions if WebSocket is not OPEN
+  useEffect(() => {
+    const pollInterval = setInterval(() => {
+      if (!wsRef.current || wsRef.current.readyState !== WebSocket.OPEN) {
+        fetch('/api/session')
+          .then((res) => (res.ok ? res.json() : null))
+          .then((data: SessionState | null) => {
+            if (!data) return;
+            setSession(data);
+            const curId = localStorage.getItem('gitmaster_player_id');
+            if (curId && data.players) {
+              const updatedMe = data.players.find((p) => p.id === curId);
+              if (updatedMe) {
+                setCurrentPlayer(updatedMe);
+              }
+            }
+            if (data.status === 'finished') {
+              setShowGameOver(true);
+            }
+          })
+          .catch(() => {});
+      }
+    }, 3000);
+
+    return () => clearInterval(pollInterval);
+  }, []);
 
   // Determine active challenge for current player
   const activeChallenges = challenges.filter(
@@ -399,6 +457,40 @@ export default function App() {
           },
         })
       );
+    } else {
+      // Fallback via HTTP REST if WebSocket is offline or blocked by reverse proxy
+      fetch('/api/submit_command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          playerId: curId,
+          challengeId: currentChallenge.id,
+          command: cmd,
+        }),
+      })
+        .then((res) => res.json())
+        .then((result) => {
+          if (result && !('error' in result)) {
+            handleCommandResultPayload(result);
+            fetch('/api/session')
+              .then((r) => r.json())
+              .then((s) => setSession(s))
+              .catch(() => {});
+          } else {
+            handleCommandResultPayload({
+              success: false,
+              message: result?.error || 'Komut işlenemedi',
+              strike: 0,
+            });
+          }
+        })
+        .catch(() => {
+          handleCommandResultPayload({
+            success: false,
+            message: 'Sunucuya ulaşılamadı. Lütfen sunucunun ve internetin aktif olduğunu doğrulayın.',
+            strike: 0,
+          });
+        });
     }
   };
 
@@ -424,6 +516,24 @@ export default function App() {
     }));
 
     setShowOnboarding(false);
+
+    // Sync via HTTP immediately (works even if WebSocket upgrade failed on proxy)
+    fetch('/api/player/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        playerId: curId,
+        name,
+        avatar,
+      }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data?.sessionState) {
+          setSession(data.sessionState);
+        }
+      })
+      .catch(() => {});
 
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(
