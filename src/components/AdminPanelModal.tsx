@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Shield,
   KeyRound,
@@ -16,6 +16,7 @@ import {
   AlertTriangle,
 } from 'lucide-react';
 import type { GitChallenge, SessionState } from '../types.ts';
+import { DEFAULT_CHALLENGES } from '../data/defaultChallenges.ts';
 
 interface AdminPanelModalProps {
   isOpen: boolean;
@@ -48,15 +49,34 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   onResetScores,
   loginError,
 }) => {
+  const challengesList =
+    allChallenges && allChallenges.length > 0 ? allChallenges : DEFAULT_CHALLENGES;
+
   const [passwordInput, setPasswordInput] = useState('');
-  const [selectedIds, setSelectedIds] = useState<string[]>(
-    session.activeChallengeIds || allChallenges.map((c) => c.id)
-  );
+  const [selectedIds, setSelectedIds] = useState<string[]>(() => {
+    if (session.activeChallengeIds && session.activeChallengeIds.length > 0) {
+      return session.activeChallengeIds;
+    }
+    return challengesList.map((c) => c.id);
+  });
   const [durationMinutes, setDurationMinutes] = useState<number>(
     Math.round(session.durationSeconds / 60) || 15
   );
   const [activeTab, setActiveTab] = useState<'controls' | 'challenges' | 'players'>('controls');
   const [saveSuccessMsg, setSaveSuccessMsg] = useState(false);
+
+  // Synchronize selectedIds whenever modal opens or session/challenges update
+  useEffect(() => {
+    if (!isOpen) return;
+    if (session.activeChallengeIds && session.activeChallengeIds.length > 0) {
+      setSelectedIds(session.activeChallengeIds);
+    } else {
+      setSelectedIds(challengesList.map((c) => c.id));
+    }
+    if (session.durationSeconds) {
+      setDurationMinutes(Math.round(session.durationSeconds / 60));
+    }
+  }, [isOpen, session.activeChallengeIds, session.durationSeconds, challengesList]);
 
   if (!isOpen) return null;
 
@@ -72,16 +92,16 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
   };
 
   const handleSelectAll = () => {
-    setSelectedIds(allChallenges.map((c) => c.id));
+    setSelectedIds(challengesList.map((c) => c.id));
   };
 
   const handleSelectBeginnerOnly = () => {
-    setSelectedIds(allChallenges.filter((c) => c.level === 'Başlangıç').map((c) => c.id));
+    setSelectedIds(challengesList.filter((c) => c.level === 'Başlangıç').map((c) => c.id));
   };
 
   const handleSelectIntermediateAdvanced = () => {
     setSelectedIds(
-      allChallenges.filter((c) => c.level === 'Orta' || c.level === 'İleri').map((c) => c.id)
+      challengesList.filter((c) => c.level === 'Orta' || c.level === 'İleri').map((c) => c.id)
     );
   };
 
@@ -338,7 +358,7 @@ export const AdminPanelModal: React.FC<AdminPanelModalProps> = ({
                 )}
 
                 <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
-                  {allChallenges.map((challenge) => {
+                  {challengesList.map((challenge) => {
                     const isChecked = selectedIds.includes(challenge.id);
                     return (
                       <div

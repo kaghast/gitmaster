@@ -33,6 +33,7 @@ import { AdminPanelModal } from './components/AdminPanelModal.tsx';
 import { GameOverModal } from './components/GameOverModal.tsx';
 import { HelpModal } from './components/HelpModal.tsx';
 import { LobbyScreen } from './components/LobbyScreen.tsx';
+import { DEFAULT_CHALLENGES } from './data/defaultChallenges.ts';
 
 // Initial placeholder state
 const DEFAULT_SESSION: SessionState = {
@@ -42,13 +43,13 @@ const DEFAULT_SESSION: SessionState = {
   timeRemaining: 900,
   startedAt: null,
   endsAt: null,
-  activeChallengeIds: [],
+  activeChallengeIds: DEFAULT_CHALLENGES.map((c) => c.id),
   players: [],
 };
 
 export default function App() {
   const [session, setSession] = useState<SessionState>(DEFAULT_SESSION);
-  const [challenges, setChallenges] = useState<GitChallenge[]>([]);
+  const [challenges, setChallenges] = useState<GitChallenge[]>(DEFAULT_CHALLENGES);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
   const [playerId, setPlayerId] = useState<string>('');
   const [isMuted, setIsMuted] = useState<boolean>(false);
@@ -180,14 +181,25 @@ export default function App() {
     fetch('/api/challenges')
       .then((res) => res.json())
       .then((data: GitChallenge[]) => {
-        setChallenges(data);
+        if (Array.isArray(data) && data.length > 0) {
+          setChallenges(data);
+        }
       })
       .catch((err) => console.error('Failed to load challenges:', err));
 
     fetch('/api/session')
       .then((res) => res.json())
       .then((data: SessionState) => {
-        setSession(data);
+        if (data && data.sessionId) {
+          setSession((prev) => ({
+            ...prev,
+            ...data,
+            activeChallengeIds:
+              Array.isArray(data.activeChallengeIds) && data.activeChallengeIds.length > 0
+                ? data.activeChallengeIds
+                : prev.activeChallengeIds,
+          }));
+        }
       })
       .catch((err) => console.error('Failed to load session:', err));
   }, []);

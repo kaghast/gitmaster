@@ -4,6 +4,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { WebSocketServer, WebSocket } from "ws";
+import { DEFAULT_CHALLENGES } from "./src/data/defaultChallenges.ts";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const PORT = parseInt(process.env.PORT || "3000", 10);
@@ -15,10 +16,20 @@ if (!fs.existsSync(DATA_DIR)) {
 }
 let challenges = [];
 try {
-  const challengesRaw = fs.readFileSync(CHALLENGES_FILE, "utf-8");
-  challenges = JSON.parse(challengesRaw);
+  if (fs.existsSync(CHALLENGES_FILE)) {
+    const challengesRaw = fs.readFileSync(CHALLENGES_FILE, "utf-8");
+    challenges = JSON.parse(challengesRaw);
+  }
 } catch (err) {
-  console.error("Failed to load challenges:", err);
+  console.error("Failed to load challenges from file:", err);
+}
+if (!Array.isArray(challenges) || challenges.length === 0) {
+  challenges = [...DEFAULT_CHALLENGES];
+  try {
+    fs.writeFileSync(CHALLENGES_FILE, JSON.stringify(challenges, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Failed to write default challenges:", err);
+  }
 }
 let sessionState = {
   sessionId: "session-default",
@@ -42,6 +53,14 @@ if (fs.existsSync(SESSION_FILE)) {
     };
   } catch (e) {
     console.error("Error reading session file, using defaults:", e);
+  }
+}
+if (!Array.isArray(sessionState.activeChallengeIds) || sessionState.activeChallengeIds.length === 0) {
+  sessionState.activeChallengeIds = challenges.map((c) => c.id);
+  try {
+    fs.writeFileSync(SESSION_FILE, JSON.stringify(sessionState, null, 2), "utf-8");
+  } catch (err) {
+    console.error("Failed to write default session:", err);
   }
 }
 function persistSession() {
@@ -231,7 +250,7 @@ app.post("/api/admin/config", (req, res) => {
     return res.status(401).json({ success: false, message: "Yetkisiz eri\u015Fim" });
   }
   if (Array.isArray(activeChallengeIds)) {
-    sessionState.activeChallengeIds = activeChallengeIds;
+    sessionState.activeChallengeIds = activeChallengeIds.length > 0 ? activeChallengeIds : challenges.map((c) => c.id);
   }
   if (typeof durationMinutes === "number" && durationMinutes > 0) {
     sessionState.durationSeconds = durationMinutes * 60;
@@ -377,11 +396,13 @@ wss.on("connection", (ws, req) => {
           break;
         }
         case "admin_set_challenges": {
-          if (message.payload?.activeChallengeIds) {
+          if (Array.isArray(message.payload?.activeChallengeIds) && message.payload.activeChallengeIds.length > 0) {
             sessionState.activeChallengeIds = message.payload.activeChallengeIds;
-            persistSession();
-            broadcastSession();
+          } else {
+            sessionState.activeChallengeIds = challenges.map((c) => c.id);
           }
+          persistSession();
+          broadcastSession();
           break;
         }
         case "admin_reset_scores": {
